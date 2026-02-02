@@ -89,10 +89,10 @@ def steer_to_until(rand_node, nearest_node):
             if ((curr_conf - incr) is np.array(nearest_node.conf)):
                 return None
             else:
-                return curr_conf - incr
+                return tuple(curr_conf - incr)
     
     if collision_fn(rand_node):
-        return curr_conf
+        return tuple(curr_conf)
     else:
         return rand_node
 
@@ -170,51 +170,53 @@ def BiRRT():
     return start_path[::-1] + end_path
 
 def BiRRT_smoothing():
-    start_node_list = [RRT_Node(start_conf)]
-    end_node_list = [RRT_Node(goal_conf)]
-    flag = False
+    # start_node_list = [RRT_Node(start_conf)]
+    # end_node_list = [RRT_Node(goal_conf)]
+    # flag = False
 
-    while True:
-        flag = not flag
-        if flag:
-            rand_conf = sample_conf()
-            nearest_idx = find_nearest(rand_conf, start_node_list)
-            no_col_conf = steer_to_until(rand_conf, start_node_list[nearest_idx])
-            if no_col_conf is not None:
-                start_node_list.append(RRT_Node(no_col_conf))
-                start_node_list[nearest_idx].add_child(start_node_list[-1])
-                start_node_list[-1].set_parent(start_node_list[nearest_idx])
-                nearest_other_idx = find_nearest(no_col_conf, end_node_list)
-                if steer_to(no_col_conf, end_node_list[nearest_other_idx]):
-                    break
-        else:
-            rand_conf = sample_conf()
-            nearest_idx = find_nearest(rand_conf, end_node_list)
-            no_col_conf = steer_to_until(rand_conf, end_node_list[nearest_idx])
-            if no_col_conf is not None:
-                end_node_list.append(RRT_Node(no_col_conf))
-                end_node_list[nearest_idx].add_child(end_node_list[-1])
-                end_node_list[-1].set_parent(end_node_list[nearest_idx])
-                nearest_other_idx = find_nearest(no_col_conf, start_node_list)
-                if steer_to(no_col_conf, start_node_list[nearest_other_idx]):
-                    break
+    # while True:
+    #     flag = not flag
+    #     if flag:
+    #         rand_conf = sample_conf()
+    #         nearest_idx = find_nearest(rand_conf, start_node_list)
+    #         no_col_conf = steer_to_until(rand_conf, start_node_list[nearest_idx])
+    #         if no_col_conf is not None:
+    #             start_node_list.append(RRT_Node(no_col_conf))
+    #             start_node_list[nearest_idx].add_child(start_node_list[-1])
+    #             start_node_list[-1].set_parent(start_node_list[nearest_idx])
+    #             nearest_other_idx = find_nearest(no_col_conf, end_node_list)
+    #             if steer_to(no_col_conf, end_node_list[nearest_other_idx]):
+    #                 break
+    #     else:
+    #         rand_conf = sample_conf()
+    #         nearest_idx = find_nearest(rand_conf, end_node_list)
+    #         no_col_conf = steer_to_until(rand_conf, end_node_list[nearest_idx])
+    #         if no_col_conf is not None:
+    #             end_node_list.append(RRT_Node(no_col_conf))
+    #             end_node_list[nearest_idx].add_child(end_node_list[-1])
+    #             end_node_list[-1].set_parent(end_node_list[nearest_idx])
+    #             nearest_other_idx = find_nearest(no_col_conf, start_node_list)
+    #             if steer_to(no_col_conf, start_node_list[nearest_other_idx]):
+    #                 break
         
     
-    end_path = []
-    start_path = []
+    # end_path = []
+    # start_path = []
 
-    end_node = end_node_list[nearest_other_idx] if flag else end_node_list[-1]
-    start_node = start_node_list[-1] if flag else start_node_list[nearest_other_idx]
+    # end_node = end_node_list[nearest_other_idx] if flag else end_node_list[-1]
+    # start_node = start_node_list[-1] if flag else start_node_list[nearest_other_idx]
     
-    while end_node != None:
-        end_path.append(end_node.conf)
-        end_node = end_node.parent
+    # while end_node != None:
+    #     end_path.append(end_node.conf)
+    #     end_node = end_node.parent
     
-    while start_node != None:
-        start_path.append(start_node.conf)
-        start_node = start_node.parent
+    # while start_node != None:
+    #     start_path.append(start_node.conf)
+    #     start_node = start_node.parent
     
-    path_conf = start_path[::-1] + end_path
+    # path_conf = start_path[::-1] + end_path
+
+    path_conf = BiRRT()
 
     while len(path_conf) > 3:
         path_len = len(path_conf)
