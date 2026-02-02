@@ -134,22 +134,22 @@ def BiRRT():
             nearest_idx = find_nearest(rand_conf, start_node_list)
             no_col_conf = steer_to_until(rand_conf, start_node_list[nearest_idx])
             if no_col_conf is not None:
-                start_node_list.append(RRT_Node(rand_conf))
+                start_node_list.append(RRT_Node(no_col_conf))
                 start_node_list[nearest_idx].add_child(start_node_list[-1])
                 start_node_list[-1].set_parent(start_node_list[nearest_idx])
-                nearest_other_idx = find_nearest(rand_conf, end_node_list)
-                if steer_to(rand_conf, end_node_list[nearest_other_idx]):
+                nearest_other_idx = find_nearest(no_col_conf, end_node_list)
+                if steer_to(no_col_conf, end_node_list[nearest_other_idx]):
                     break
         else:
             rand_conf = sample_conf()
             nearest_idx = find_nearest(rand_conf, end_node_list)
             no_col_conf = steer_to_until(rand_conf, end_node_list[nearest_idx])
             if no_col_conf is not None:
-                end_node_list.append(RRT_Node(rand_conf))
+                end_node_list.append(RRT_Node(no_col_conf))
                 end_node_list[nearest_idx].add_child(end_node_list[-1])
                 end_node_list[-1].set_parent(end_node_list[nearest_idx])
-                nearest_other_idx = find_nearest(rand_conf, start_node_list)
-                if steer_to(rand_conf, start_node_list[nearest_other_idx]):
+                nearest_other_idx = find_nearest(no_col_conf, start_node_list)
+                if steer_to(no_col_conf, start_node_list[nearest_other_idx]):
                     break
         
     
@@ -181,22 +181,22 @@ def BiRRT_smoothing():
             nearest_idx = find_nearest(rand_conf, start_node_list)
             no_col_conf = steer_to_until(rand_conf, start_node_list[nearest_idx])
             if no_col_conf is not None:
-                start_node_list.append(RRT_Node(rand_conf))
+                start_node_list.append(RRT_Node(no_col_conf))
                 start_node_list[nearest_idx].add_child(start_node_list[-1])
                 start_node_list[-1].set_parent(start_node_list[nearest_idx])
-                nearest_other_idx = find_nearest(rand_conf, end_node_list)
-                if steer_to(rand_conf, end_node_list[nearest_other_idx]):
+                nearest_other_idx = find_nearest(no_col_conf, end_node_list)
+                if steer_to(no_col_conf, end_node_list[nearest_other_idx]):
                     break
         else:
             rand_conf = sample_conf()
             nearest_idx = find_nearest(rand_conf, end_node_list)
             no_col_conf = steer_to_until(rand_conf, end_node_list[nearest_idx])
             if no_col_conf is not None:
-                end_node_list.append(RRT_Node(rand_conf))
+                end_node_list.append(RRT_Node(no_col_conf))
                 end_node_list[nearest_idx].add_child(end_node_list[-1])
                 end_node_list[-1].set_parent(end_node_list[nearest_idx])
-                nearest_other_idx = find_nearest(rand_conf, start_node_list)
-                if steer_to(rand_conf, start_node_list[nearest_other_idx]):
+                nearest_other_idx = find_nearest(no_col_conf, start_node_list)
+                if steer_to(no_col_conf, start_node_list[nearest_other_idx]):
                     break
         
     
