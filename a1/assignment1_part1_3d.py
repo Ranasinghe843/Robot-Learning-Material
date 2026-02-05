@@ -118,10 +118,6 @@ def RRT():
     
     return path_conf[::-1]
 
-def connect(rand_node, node_list):
-    nearest_idx = find_nearest(rand_node, node_list)
-    collision = steer_to(rand_node, node_list[nearest_idx])
-
 def BiRRT():
 
     start_node_list = [RRT_Node(start_conf)]
