@@ -124,8 +124,16 @@ class RRT():
 
         Returns: index of the new parent selected
         """
-        # your code here
-        return None
+        
+        lowest_cost = np.inf
+        best_parent_idx = None
+        for idx in nearinds:
+            valid, cost = self.steerTo(newNode, self.nodeList[idx])
+            if valid and cost + self.nodeList[idx].cost < lowest_cost:
+                lowest_cost = cost + self.nodeList[idx].cost
+                best_parent_idx = idx
+        
+        return best_parent_idx
 
     def steerTo(self, dest, source):
         """
@@ -253,8 +261,23 @@ class RRT():
         # Use this value of gamma
         GAMMA = 50
 
-        # your code here
-        return []
+        i = len(self.nodeList)
+        n = self.dof
+
+        ball_radius = GAMMA * math.pow(math.log(i) / i, 1 / n)
+
+        near_idxs = []
+        for idx, node in enumerate(self.nodeList):
+            if dist(node.state, newNode.state) <= ball_radius:
+                near_idxs.append(idx)
+
+        return near_idxs
+    
+    def propogate_cost(self, nodeIndex):
+        if bool(self.nodeList[nodeIndex].children):
+            for child_idx in self.nodeList[nodeIndex].children:
+                self.nodeList[child_idx].cost = self.nodeList[nodeIndex].cost + dist(self.nodeList[nodeIndex].state, self.nodeList[child_idx].state)
+                self.propogate_cost(child_idx)
 
     def rewire(self, newNode, newNodeIndex, nearinds):
         """
@@ -265,8 +288,15 @@ class RRT():
         newNodeIndex: the index of newNode
         nearinds: list of indices of nodes near newNode
         """
-        # your code here
-        pass
+        
+        for idx in nearinds:
+            valid, new_cost = self.steerTo(self.nodeList[idx], newNode)
+            if valid and newNode.cost + new_cost < self.nodeList[idx].cost and self.nodeList[idx].parent is not None:
+                self.nodeList[self.nodeList[idx].parent].children.discard(idx)
+                self.nodeList[idx].parent = newNodeIndex
+                newNode.children.add(idx)
+                self.nodeList[idx].cost = newNode.cost + new_cost
+                self.propogate_cost(idx)
 
     def GetNearestListIndex(self, nodeList, rnd):
         """
