@@ -58,6 +58,10 @@ class RRT():
         self.geom = geom
         self.dof = dof
 
+        self.radius = 1.0
+        self.length = 1.5
+        self.width = 3.0
+
         self.expandDis = expandDis
         self.goalSampleRate = goalSampleRate
         self.maxIter = maxIter
@@ -201,8 +205,12 @@ class RRT():
         """
         if random.randint(0, 100) > self.goalSampleRate:
             sample=[]
-            for j in range(0,self.dof):
+            for j in range(0,2):
                 sample.append(random.uniform(self.minrand, self.maxrand))
+
+            if self.geom == 'rectangle':
+                sample.append(random.uniform(-np.pi, np.pi))
+
             rnd=Node(sample)
         else:
             rnd = self.end
@@ -314,6 +322,19 @@ class RRT():
         minind = dlist.index(min(dlist))
 
         return minind
+    
+    def polygon_collision(self, obj_corners, obs_corners):
+        for corner in [obj_corners, obs_corners]:
+            for i in range(len(corner)):
+                c1, c2 = corner[i], corner[(i + 1) % len(corner)]
+                normal = (c2[1] - c1[1], c1[0] - c2[0])
+
+                dots1 = [c[0] * normal[0] + c[1] * normal[1] for c in obj_corners]
+                dots2 = [c[0] * normal[0] + c[1] * normal[1] for c in obs_corners]
+                
+                if max(dots1) < min(dots2) or max(dots2) < min(dots1):
+                    return False
+        return True
 
     def __CollisionCheck(self, node):
         """
@@ -321,23 +342,58 @@ class RRT():
 
         You will need to modify this for question 2 (if self.geom == 'circle') and question 3 (if self.geom == 'rectangle')
         """
-        s = np.zeros(2, dtype=np.float32)
-        s[0] = node.state[0]
-        s[1] = node.state[1]
 
+        if self.geom == 'point' or self.geom == 'circle':
+            s = np.zeros(2, dtype=np.float32)
+            s[0] = node.state[0]
+            s[1] = node.state[1]
 
-        for (ox, oy, sizex,sizey) in self.obstacleList:
-            obs=[ox+sizex/2.0,oy+sizey/2.0]
-            obs_size=[sizex,sizey]
-            cf = False
-            for j in range(self.dof):
-                if abs(obs[j] - s[j])>obs_size[j]/2.0:
-                    cf=True
-                    break
-            if cf == False:
-                return False
+            for (ox, oy, sizex,sizey) in self.obstacleList:
 
-        return True  # safe'''
+                x_min, x_max = ox, ox + sizex
+                y_min, y_max = oy, oy + sizey
+
+                if s[0] >= x_min and s[0] <= x_max and s[1] >= y_min and s[1] <= y_max:
+                    return False
+                
+                if self.geom == 'point':
+                    continue
+                
+                x_closest = max(x_min, min(s[0], x_max))
+                y_closest = max(y_min, min(s[1], y_max))
+
+                if (x_closest - s[0]) ** 2 + (y_closest - s[1]) ** 2 < self.radius ** 2:
+                    return False
+
+            return True
+        
+        else:
+
+            st = np.zeros(3, dtype=np.float32)
+            st[0] = node.state[0]
+            st[1] = node.state[1]
+            st[2] = node.state[2]
+
+            c, s = math.cos(st[2]), math.sin(st[2])
+
+            dx = [self.width/2, self.width/2, -self.width/2, -self.width/2]
+            dy = [self.length/2, -self.length/2, -self.length/2, self.length/2]
+            obj_corners = [(st[0] + dx[i]*c - dy[i]*s, st[1] + dx[i]*s + dy[i]*c) for i in range(4)]
+
+            for (ox, oy, sizex,sizey) in self.obstacleList:
+
+                x_min, x_max = ox, ox + sizex
+                y_min, y_max = oy, oy + sizey
+
+                if st[0] >= x_min and st[0] <= x_max and st[1] >= y_min and st[1] <= y_max:
+                    return False
+                
+                obs_corners = [(x_min, y_min), (x_min, y_max), (x_max, y_min), (x_max, y_max)]
+
+                if self.polygon_collision(obj_corners, obs_corners):
+                    return False
+
+            return True
 
     def get_path_to_goal(self):
         """
@@ -357,6 +413,36 @@ class RRT():
             return self.gen_final_course(goalind)
         else:
             return None
+        
+    def draw_path_rectangles(self, start_state, end_state, color='-g', alpha=0.3):
+        dx = end_state[0] - start_state[0]
+        dy = end_state[1] - start_state[1]
+        
+        d_theta = (end_state[2] - start_state[2] + math.pi) % (2 * math.pi) - math.pi
+        
+        dist_total = math.sqrt(dx**2 + dy**2)
+        num_steps = max(int(dist_total / self.expandDis), 1) 
+
+        L, W = self.length, self.width
+
+        for i in range(num_steps + 1):
+            ratio = i / num_steps
+            curr_x = start_state[0] + dx * ratio
+            curr_y = start_state[1] + dy * ratio
+            curr_theta = start_state[2] + d_theta * ratio
+
+            cos_t = math.cos(curr_theta)
+            sin_t = math.sin(curr_theta)
+            
+            bl_x = curr_x - (W/2) * cos_t + (L/2) * sin_t
+            bl_y = curr_y - (W/2) * sin_t - (L/2) * cos_t
+
+            rect = plt.Rectangle(
+                (bl_x, bl_y), W, L, 
+                angle=math.degrees(curr_theta), 
+                color=color, alpha=alpha
+            )
+            plt.gca().add_patch(rect)
 
     def draw_graph(self, rnd=None):
         """
@@ -378,20 +464,54 @@ class RRT():
         for node in self.nodeList:
             if node.parent is not None:
                 if node.state is not None:
-                    plt.plot([node.state[0], self.nodeList[node.parent].state[0]], [
-                        node.state[1], self.nodeList[node.parent].state[1]], "-g")
+                    if self.geom == 'point':
+                        plt.plot([node.state[0], self.nodeList[node.parent].state[0]], [
+                            node.state[1], self.nodeList[node.parent].state[1]], "-g")
+                    if self.geom == 'circle':
+                        plt.plot([node.state[0], self.nodeList[node.parent].state[0]], [
+                            node.state[1], self.nodeList[node.parent].state[1]], "-g", linewidth=12.0, alpha=0.3)
+                        circle = plt.Circle((node.state[0], node.state[1]), radius=self.radius, color='b', fill=True)
+                        plt.gca().add_patch(circle)
+                    if self.geom == 'rectangle':
+                        # plt.plot([node.state[0], self.nodeList[node.parent].state[0]], [
+                        #     node.state[1], self.nodeList[node.parent].state[1]], "-g", linewidth=12.0, alpha=0.3)
+                        self.draw_path_rectangles(self.nodeList[node.parent].state, node.state, 'g', 0.03)
+                        c, s = math.cos(node.state[2]), math.sin(node.state[2])
+                        bottom_left_x = node.state[0] - (self.width/2) * c + (self.length/2) * s
+                        bottom_left_y = node.state[1] - (self.width/2) * s - (self.length/2) * c
+                        rectangle = plt.Rectangle((bottom_left_x, bottom_left_y), self.width, self.length, angle=math.degrees(node.state[2]), color='b', fill=True)
+                        plt.gca().add_patch(rectangle)
 
         if self.goalfound:
             path = self.get_path_to_goal()
             x = [p[0] for p in path]
             y = [p[1] for p in path]
-            plt.plot(x, y, '-r')
+            if self.geom == 'point':
+                plt.plot(x, y, '-r')
+            if self.geom == 'circle':
+                plt.plot(x, y, '-r', linewidth=12.0, alpha=0.3)
+            if self.geom == 'rectangle':
+                for i in range(len(path) - 1):
+                    self.draw_path_rectangles(path[i], path[i + 1], 'r', 0.03)
+                #plt.plot(x, y, '-r', linewidth=12.0, alpha=0.3)
 
         if rnd is not None:
             plt.plot(rnd[0], rnd[1], "^k")
 
-        plt.plot(self.start.state[0], self.start.state[1], "xr")
-        plt.plot(self.end.state[0], self.end.state[1], "xr")
+        if self.geom == 'point':
+            plt.plot(self.start.state[0], self.start.state[1], "xr")
+            plt.plot(self.end.state[0], self.end.state[1], "xr")
+        if self.geom == 'circle':
+            circle = plt.Circle((self.start.state[0], self.start.state[1]), radius=self.radius, color='r', fill=True)
+            plt.gca().add_patch(circle)
+            circle = plt.Circle((self.end.state[0], self.end.state[1]), radius=self.radius, color='r', fill=True)
+            plt.gca().add_patch(circle)
+        if self.geom == 'rectangle':
+            rectangle = plt.Rectangle((self.start.state[0] - self.width / 2, self.start.state[1] - self.length / 2), self.width, self.length, angle=0, color='r', fill=True)
+            plt.gca().add_patch(rectangle)
+            rectangle = plt.Rectangle((self.end.state[0] - self.width / 2, self.end.state[1] - self.length / 2), self.width, self.length, angle=0, color='r', fill=True)
+            plt.gca().add_patch(rectangle)
+        
         plt.axis("equal")
         plt.axis([-20, 20, -20, 20])
         plt.grid(True)
@@ -439,9 +559,14 @@ def main():
     (5,-5, 5.0, 5.0),
     ]
 
-    start = [-10, -17]
-    goal = [10, 10]
-    dof=2
+    if args.geom != 'rectangle':
+        start = [-10, -17]
+        goal = [10, 10]
+        dof=2
+    else:
+        start = [-10, -17, 0]
+        goal = [10, 10, 0]
+        dof=3
 
     rrt = RRT(start=start, goal=goal, randArea=[-20, 20], obstacleList=obstacleList, dof=dof, alg=args.alg, geom=args.geom, maxIter=args.iter)
     path = rrt.planning(animation=show_animation)
